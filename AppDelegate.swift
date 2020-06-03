@@ -7,14 +7,17 @@
 //
 
 import UIKit
+import CoreData
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-
+    var window: UIWindow?
+    //let stack = CoreDataStack.persistentContainer
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        
         return true
     }
 
@@ -39,11 +42,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     
     func applicationDidEnterBackground(_ application: UIApplication) {
-        saveViewContext()
+//        saveViewContext()
     }
     
     func applicationWillTerminate(_ application: UIApplication) {
-    saveViewContext()
+//    saveViewContext()
     }
 
     func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
@@ -52,9 +55,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
     }
     
-    func saveViewContext () {
-         CoreDataStack.saveContext()
-    }
+//    func saveViewContext () {
+//         CoreDataStack.saveContext()
+//    }
 
 
 }

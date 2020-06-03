@@ -9,16 +9,31 @@
 import Foundation
 
 
-struct SearchRequest: Codable {
-    let apikey: String
-    let lat: String
-    let lon: String
+struct JsonFlickrApi: Codable {
+    let photos: FlickrPhotoResponse
+}
+
+struct FlickrPhotoResponse: Codable {
+    let page: Int
+    let pages: Int
+    let photo: [FlickrPhoto]
     
-    enum CodingKeys: String, CodingKey {
-        case apikey = "api_key"
-        case lat
-        case lon
-        
-    }
     
 }
+
+struct FlickrPhoto: Codable {
+    let id: String
+    let secret: String
+    let server: String
+    let farm: Int
+    
+    func imageURLString() -> String {
+        
+        return "https://farm\(farm).staticflickr.com/\(server)/\(id)_\(secret)_q.jpg"
+    }
+}
+
+
+
+//        https://www.flickr.com/services/rest/?method=flickr.photos.search&api_key=b5625f901b99ec2378ab503d2cbde877&lat=32.7123&lon=-117.1521&format=json&nojsoncallback=1
+
