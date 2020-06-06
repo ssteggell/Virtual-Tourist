@@ -11,13 +11,21 @@ import MapKit
 import CoreData
 
 
-class mapViewController: UIViewController, MKMapViewDelegate, NSFetchedResultsControllerDelegate {
 
+//MARK: OLD CODE
+
+class mapViewController: UIViewController, MKMapViewDelegate, NSFetchedResultsControllerDelegate {
+    
+    
     
     // MARK: OUTLETS
     
     @IBOutlet weak var mapView: MKMapView!
-
+    @IBOutlet weak var deletePinsBtn: UIBarButtonItem!
+    @IBOutlet weak var cancelBtn: UIBarButtonItem!
+    @IBOutlet weak var deletePinsLabel: UILabel!
+    @IBOutlet weak var resetMapBtn: UIBarButtonItem!
+    
     
     //MARK: PROPERTIES
     
@@ -26,6 +34,9 @@ class mapViewController: UIViewController, MKMapViewDelegate, NSFetchedResultsCo
     var fetchedResultsController: NSFetchedResultsController<Pin>!
     var latitude: Double?
     var longitude: Double?
+    
+    fileprivate let locationManager: CLLocationManager = CLLocationManager()
+    
     
     //MARK: SET UP FETCH
     
@@ -47,60 +58,102 @@ class mapViewController: UIViewController, MKMapViewDelegate, NSFetchedResultsCo
         }
     }
     
+    
     //MARK: VIEW DID LOAD
     
-     override func viewDidLoad() {
-            super.viewDidLoad()
-        setUpFetchedResultsViewController()
+    override func viewDidLoad() {
+        super.viewDidLoad()
         mapView.delegate = self
-    //        initialLocation.CLLocation = UserDefaults.standard.float(forKey: "initialLocation")
+        setUpFetchedResultsViewController()
+        findCurrentLocation()
+        if UserDefaults.standard.value(forKey: "lat") != nil { loadFromDefaults() }
         let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(addAnnotationOnLongPress(_ :)))
-            mapView.addGestureRecognizer(longPressGesture)
-//            loadAnnotations()
-    //         Do any additional setup after loading the view.
-        }
+        mapView.addGestureRecognizer(longPressGesture)
+        
+    }
+    
+    //MARK: VIEW WILL DISAPPEAR
+    override func viewWillDisappear(_ animated: Bool) {
+        
+        saveToDefaults()
+        
+    }
+    //MARK: SAVE AND LOAD DEFAULTS
+    func loadFromDefaults() {
+        let defaults = UserDefaults.standard
+        let center = CLLocationCoordinate2DMake(defaults.double(forKey: "lat"), defaults.double(forKey: "lon"))
+        let span = MKCoordinateSpan(latitudeDelta: (defaults.double(forKey: "latSpan")), longitudeDelta: (defaults.double(forKey: "lonSpan")))
+        let savedRegion: MKCoordinateRegion = MKCoordinateRegion(center: center, span: span)
+        mapView.setRegion(savedRegion, animated: true)
+        
+    }
+    
+    func saveToDefaults() {
+        let defaults = UserDefaults.standard
+        let region = mapView.region
+        let coordinates = mapView.centerCoordinate
+        defaults.set(coordinates.latitude, forKey: "lat")
+        defaults.set(coordinates.longitude, forKey: "lon")
+        defaults.set(region.span.latitudeDelta, forKey: "latSpan")
+        defaults.set(region.span.longitudeDelta, forKey: "lonSpan")
+        
+    }
+    
+    
+    //MARK: GET USER LOCATION
+    
+    fileprivate func findCurrentLocation() {
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager.distanceFilter = kCLDistanceFilterNone
+        locationManager.startUpdatingLocation()
+        mapView.showsUserLocation = true
+        
+    }
     
     
     //MARK: LONG PRESS FUNCTION
     
-        @objc func addAnnotationOnLongPress(_ sender: UILongPressGestureRecognizer) {
-
-            guard sender.state == UIGestureRecognizer.State.began else { return }
-                let point = sender.location(in: mapView)
-                let coordinate = mapView.convert(point, toCoordinateFrom: mapView)
-                print(coordinate)
-                //Now use this coordinate to add annotation on map.
-            let annotation: MKPointAnnotation = MKPointAnnotation()
-                annotation.coordinate = coordinate
-            annotation.title = "View Photos"
-            mapView.addAnnotation(annotation)
-            let pin = Pin(context: DataController.shared.viewContext)
-            pin.latitude = Double(coordinate.latitude)
-            pin.longitude = Double(coordinate.longitude)
-            annotations.append(pin)
-            DataController.shared.save()
-                }
+    @objc func addAnnotationOnLongPress(_ sender: UILongPressGestureRecognizer) {
+        
+        guard sender.state == UIGestureRecognizer.State.began else { return }
+        let point = sender.location(in: mapView)
+        let coordinate = mapView.convert(point, toCoordinateFrom: mapView)
+        print(coordinate)
+        //Now use this coordinate to add annotation on map.
+        let annotation: MKPointAnnotation = MKPointAnnotation()
+        annotation.coordinate = coordinate
+        annotation.title = "View Photos"
+        mapView.addAnnotation(annotation)
+        let pin = Pin(context: DataController.shared.viewContext)
+        pin.latitude = Double(coordinate.latitude)
+        pin.longitude = Double(coordinate.longitude)
+        annotations.append(pin)
+        DataController.shared.save()
+    }
+    
     
     //MARK: MAPVIEWS
     
-    func mapViewPins(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-        
-        let reuseId = "pin"
+    //FUNCTION USED TO CREATE NEW ANNOTATIONS
+    func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+        let reuseID = "pin"
         var pinView: MKPinAnnotationView
         
-        if let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MKPinAnnotationView {pinView = annotationView}
-        else {
-             pinView = MKPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
+        if let annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseID) as? MKPinAnnotationView {
+            pinView = annotationView
+        } else {
+            pinView = MKPinAnnotationView(annotation: annotation, reuseIdentifier: reuseID)
         }
-            pinView.canShowCallout = true
-            pinView.pinTintColor = .blue
-            pinView.rightCalloutAccessoryView = UIButton(type: .detailDisclosure)
+        
+        pinView.canShowCallout = true
+        pinView.rightCalloutAccessoryView = UIButton(type: .detailDisclosure)
         pinView.annotation = annotation
         return pinView
     }
-        
-        
-    func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+    
+    //FUNCTION USED FOR SEGUE
+    func mapView(_ mapView: MKMapView, annotationView view: MKAnnotationView, calloutAccessoryControlTapped control: UIControl) {
         let vc = storyboard?.instantiateViewController(withIdentifier: "PhotoAlbumViewController") as! PhotoAlbumViewController
         let lat = view.annotation?.coordinate.latitude
         let lon = view.annotation? .coordinate.longitude
@@ -113,175 +166,51 @@ class mapViewController: UIViewController, MKMapViewDelegate, NSFetchedResultsCo
             }
         }
         navigationController?.pushViewController(vc, animated: true)
-    }
-
-}
-
-    //                    performUIUpdatesOnMain {
-    //                        CoreDataStack.saveContext()
-    //                        self
-            
-
-//        }
-//}
-
-    /*
-    
- override func viewWillAppear(_ animated: Bool) {
-//    if let savedRegion = UserDefaults.standard.value(forKey: kMapRegion) {
-//        mapView.setVisibleMapRect(savedRegion as! MKMapRect, animated: true)
-//      }
-    }
-    override func viewDidLoad() {
-        super.viewDidLoad()
-//        initialLocation.CLLocation = UserDefaults.standard.float(forKey: "initialLocation")
-        let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(addPin(gestureRecognizer:)))
-        longPressGesture.minimumPressDuration = 1.0
-        self.mapView.addGestureRecognizer(longPressGesture)
-        loadAnnotations()
-//         Do any additional setup after loading the view.
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-
-    }
-
-
-    @objc func addAnnotationOnLongPress(gesture: UILongPressGestureRecognizer) {
-
-        if gesture.state == .ended {
-            let point = gesture.location(in: self.mapView)
-            let coordinate = self.mapView.convert(point, toCoordinateFrom: self.mapView)
-            print(coordinate)
-            //Now use this coordinate to add annotation on map.
-            let annotation = MKPointAnnotation()
-            annotation.coordinate = coordinate
-
-            addedPinSaved(lat: coordinate.latitude, lon: coordinate.longitude)
-            //Set title and subtitle if you want
-            annotation.title = "'\(coordinate.latitude)' '\(coordinate.longitude)'"
-//            annotation.subtitle = "subtitle"
-            self.mapView.addAnnotation(annotation)
-
-            performUIUpdatesOnMain {
-                self.loadAnnotations()
-            }
-        }
-
-    }
-    
-    @objc func addPin(gestureRecognizer: UILongPressGestureRecognizer) {
-        /* Add Pin when the Long Press Gesture state has began */
-        if gestureRecognizer.state == UIGestureRecognizer.State.began {
-            
-            let location = gestureRecognizer.location(in: mapView)
-            let newCoordinates = mapView.convert(location, toCoordinateFrom: mapView)
-            let annotation = MKPointAnnotation()
-            annotation.coordinate = newCoordinates
-            
-            addedPinSaved(lat: newCoordinates.latitude, lon: newCoordinates.longitude)
-            
-            performUIUpdatesOnMain {
-                self.loadAnnotations()
-            }
-        }
-    }
-    
-    func addedPinSaved(lat: Double, lon: Double) {
-        let context = CoreDataStack.getContext()
-        let pin : Pin = NSEntityDescription.insertNewObject(forEntityName: "Pin", into: context) as! Pin
-
-        pin.latitude = lat
-        pin.longitude = lon
-
-        CoreDataStack.saveContext()
-
-    }
-
-   
-}
-
-
-extension mapViewController: MKMapViewDelegate {
-    
-    func loadAnnotations() {
-        let fetchRequest : NSFetchRequest<Pin> = Pin.fetchRequest()
         
-        do {
-            let searchResults = try CoreDataStack.getContext().fetch(fetchRequest)
-            var annotations = [MKPointAnnotation]()
-            for result in searchResults as [Pin] {
-                let lat = CLLocationDegrees(result.latitude)
-                let long = CLLocationDegrees(result.longitude)
-                let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: long)
-                let annotation = MKPointAnnotation()
-                annotation.coordinate = coordinate
-                annotations.append(annotation)
-            }
-            
-            performUIUpdatesOnMain {
-                self.mapView.addAnnotations(annotations)
-            }
-        } catch {
-            print("Error fetching annotations: \(error)")
-        }
     }
     
-    func mapViewPins(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
-           
-           let reuseId = "pin"
-           
-           var pinView = mapView.dequeueReusableAnnotationView(withIdentifier: reuseId) as? MKPinAnnotationView
-           
-           if pinView == nil {
-               pinView = MKPinAnnotationView(annotation: annotation, reuseIdentifier: reuseId)
-               pinView!.canShowCallout = true
-               pinView!.pinTintColor = .red
-               pinView!.rightCalloutAccessoryView = UIButton(type: .detailDisclosure)
-           }
-               
-           else
-           {
-               pinView!.annotation = annotation
-           }
-           
-           return pinView
-       }
-    
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "ShowPhotoAlbumVC" {
-            let controller = segue.destination as! PhotoAlbumViewController
-            let selectedPin = sender as! Pin
-            controller.selectedPin = selectedPin
-        }
-    }
-    
-    
+    //FUNCTION USED TO DELETE PINS
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
-        mapView.deselectAnnotation(view.annotation, animated: true)
-        let lat = view.annotation?.coordinate.latitude
-        let lon = view.annotation? .coordinate.longitude
-        let fetchRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
-        do {
-            let searchResults = try CoreDataStack.getContext().fetch(fetchRequest)
-            for pin in searchResults as [Pin] {
-                if pin.latitude == lat!, pin.longitude == lon! {
-                    let selectedPin = pin
-                    print("Found info")
-//                    performUIUpdatesOnMain {
-//                        CoreDataStack.saveContext()
-//                        self
-                    performUIUpdatesOnMain {
-                        self.performSegue(withIdentifier: "ShowPhotoAlbumVC", sender: selectedPin)
-                    }
+        
+        if deletePinsBtn.isEnabled == false {
+            let selectedAnnotation = view.annotation as? MKPointAnnotation
+            
+            for pin in annotations {
+                if pin.latitude == selectedAnnotation?.coordinate.latitude &&
+                    pin.longitude == selectedAnnotation?.coordinate.longitude {
+                    mapView.removeAnnotation(selectedAnnotation!)
+                    DataController.shared.viewContext.delete(pin)
+                    DataController.shared.save()
                 }
             }
-        } catch {
-            print("Error: \(error)")
         }
-        
+    }
+    
+    
+    //MARK: BUTTONS
+    //DELETING PINS
+    @IBAction func deleteBtnPressed(_ sender: Any) {
+        deletePinsBtn.isEnabled = false
+        cancelBtn.isEnabled = true
+        deletePinsLabel.isHidden = false
         
     }
+    
+    //CANCEL DELETE OPTION
+    @IBAction func cancelBtnPressed(_ sender: Any) {
+        deletePinsBtn.isEnabled = true
+        cancelBtn.isEnabled = false
+        deletePinsLabel.isHidden = true
+    }
+    
+    //RESET MAP TO DEFAULT VIEW
+    @IBAction func resetMapBtnPressed(_ sender: Any) {
+        let center = CLLocationCoordinate2DMake(37.13283999999996, -95.78557999999998)
+        let span = MKCoordinateSpan(latitudeDelta: 86.24809813365279, longitudeDelta: 61.276014999999916)
+        let region = MKCoordinateRegion(center: center, span: span)
+        mapView.setRegion(region, animated: true)
+        
+    }
+    
 }
 
-*/

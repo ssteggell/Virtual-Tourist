@@ -8,12 +8,12 @@
 
 import UIKit
 import CoreData
+import MapKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
-    //let stack = CoreDataStack.persistentContainer
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
@@ -29,24 +29,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
     }
     
-//    func checkIfFirstLaunch() {
-//        if UserDefaults.standard.bool(forKey: "hasLaunchedBefore") {
-//            print("App has launched before")
-//        } else {
-//            print("This is the first launch ever!")
-//            UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
-//            UserDefaults.standard.set(false, forKey: "kMapRegion")
-//            UserDefaults.standard.synchronize()
-//        }
-//    }
+
     
     
     func applicationDidEnterBackground(_ application: UIApplication) {
-//        saveViewContext()
+        DataController.shared.save()
     }
     
     func applicationWillTerminate(_ application: UIApplication) {
-//    saveViewContext()
+        DataController.shared.save()
     }
 
     func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
@@ -54,10 +45,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
         // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
     }
-    
-//    func saveViewContext () {
-//         CoreDataStack.saveContext()
-//    }
 
 
 }

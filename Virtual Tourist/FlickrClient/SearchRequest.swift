@@ -17,8 +17,6 @@ struct FlickrPhotoResponse: Codable {
     let page: Int
     let pages: Int
     let photo: [FlickrPhoto]
-    
-    
 }
 
 struct FlickrPhoto: Codable {
@@ -35,5 +33,5 @@ struct FlickrPhoto: Codable {
 
 
 
-//        https://www.flickr.com/services/rest/?method=flickr.photos.search&api_key=b5625f901b99ec2378ab503d2cbde877&lat=32.7123&lon=-117.1521&format=json&nojsoncallback=1
+//     USED AS REFERENCE FOR BUILDING SEARCH URL https://www.flickr.com/services/rest/?method=flickr.photos.search&api_key=b5625f901b99ec2378ab503d2cbde877&lat=32.7123&lon=-117.1521&format=json&nojsoncallback=1
 
